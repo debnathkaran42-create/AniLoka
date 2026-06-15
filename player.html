@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AniLoka Player V3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#000;color:#fff;overflow:hidden}
+.player{position:relative;width:100%;height:100vh;background:#000}
+video{width:100%;height:100%;object-fit:contain}
+.controls{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,.85),transparent,rgba(0,0,0,.9));transition:.3s}
+.hide{opacity:0;pointer-events:none}
+.top,.bottom{padding:15px}
+.top{display:flex;gap:10px}
+.btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:10px 12px;border-radius:12px}
+.center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;gap:20px}
+.play{width:75px;height:75px;border-radius:50%;background:#FFD700;color:#000;font-size:26px;font-weight:bold}
+.range{width:100%}
+.time{display:flex;justify-content:space-between;margin-top:8px}
+.drawer,.panel{position:absolute;top:0;height:100%;width:300px;background:#111;overflow:auto;padding:20px;z-index:100;transition:.3s}
+.drawer{left:-320px}
+.drawer.show{left:0}
+.panel{right:-320px}
+.panel.show{right:0}
+.item{background:#1e1e1e;padding:14px;border-radius:10px;margin-bottom:10px}
+.skip{position:absolute;right:20px;bottom:120px;background:#FFD700;border:none;padding:10px 16px;border-radius:25px}
+.nextBox{position:absolute;bottom:180px;left:50%;transform:translateX(-50%);background:#111;padding:15px;border-radius:12px;display:none}
+.locked .controls{display:none}
+</style>
+</head>
+<body>
+
+<div class="player" id="player">
+
+<video id="video">
+<source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+</video>
+
+<button class="skip" id="skipBtn">Skip Intro</button>
+
+<div class="drawer" id="episodeDrawer">
+<h2>Episodes</h2>
+<div class="item">Episode 1</div>
+<div class="item">Episode 2</div>
+<div class="item">Episode 3</div>
+<div class="item">Episode 4</div>
+</div>
+
+<div class="panel" id="settingsPanel">
+
+<div id="mainMenu">
+<div class="item" onclick="openMenu('speedMenu')">Playback Speed</div>
+<div class="item" onclick="openMenu('langMenu')">Language</div>
+<div class="item" onclick="openMenu('subMenu')">Subtitles</div>
+<div class="item" onclick="openMenu('qualityMenu')">Quality</div>
+</div>
+
+<div id="speedMenu" style="display:none">
+<div class="item" onclick="backMenu()">⬅ Back</div>
+<div class="item" onclick="setSpeed(.5)">0.5x</div>
+<div class="item" onclick="setSpeed(1)">1x</div>
+<div class="item" onclick="setSpeed(1.5)">1.5x</div>
+<div class="item" onclick="setSpeed(2)">2x</div>
+</div>
+
+<div id="langMenu" style="display:none">
+<div class="item" onclick="backMenu()">⬅ Back</div>
+<div class="item" onclick="setLanguage('English')">English</div>
+<div class="item" onclick="setLanguage('Hindi')">Hindi</div>
+<div class="item" onclick="setLanguage('Bengali')">Bengali</div>
+</div>
+
+<div id="subMenu" style="display:none">
+<div class="item" onclick="backMenu()">⬅ Back</div>
+<div class="item" onclick="setSubtitle('Off')">Off</div>
+<div class="item" onclick="setSubtitle('English')">English</div>
+</div>
+
+<div id="qualityMenu" style="display:none">
+<div class="item" onclick="backMenu()">⬅ Back</div>
+<div class="item">360p</div>
+<div class="item">480p</div>
+<div class="item">720p</div>
+<div class="item">1080p</div>
+</div>
+
+</div>
+
+<div class="controls" id="controls">
+
+<div class="top">
+<button class="btn" onclick="history.back()">←</button>
+<button class="btn" onclick="toggleEpisodes()">☰</button>
+<button class="btn" onclick="toggleSettings()">⚙</button>
+<button class="btn" onclick="toggleFullscreen()">⛶</button>
+<button class="btn" onclick="toggleLock()">🔒</button>
+</div>
+
+<div class="center">
+<button class="btn" onclick="seek(-10)">⏪</button>
+<button class="play" id="playBtn" onclick="togglePlay()">▶</button>
+<button class="btn" onclick="seek(10)">⏩</button>
+</div>
+
+<div class="nextBox" id="nextBox">
+Next Episode in <span id="count">5</span>
+</div>
+
+<div class="bottom">
+<input class="range" type="range" id="progress" min="0" max="100">
+<input class="range" type="range" id="volume" min="0" max="1" step="0.1" value="1">
+<div class="time">
+<span id="current">00:00</span>
+<span id="duration">00:00</span>
+</div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+const video=document.getElementById("video");
+const controls=document.getElementById("controls");
+const player=document.getElementById("player");
+const playBtn=document.getElementById("playBtn");
+const progress=document.getElementById("progress");
+let hideTimer;
+
+function showControls(){
+controls.classList.remove("hide");
+clearTimeout(hideTimer);
+hideTimer=setTimeout(()=>controls.classList.add("hide"),5000);
+}
+
+player.addEventListener("click",(e)=>{
+if(e.target.closest("button")||e.target.closest(".panel")||e.target.closest(".drawer")||e.target.closest("input")) return;
+controls.classList.toggle("hide");
+if(!controls.classList.contains("hide")) showControls();
+});
+
+function togglePlay(){
+if(video.paused){video.play();playBtn.innerHTML="❚❚";}
+else{video.pause();playBtn.innerHTML="▶";}
+showControls();
+}
+
+function seek(sec){video.currentTime+=sec;}
+function toggleFullscreen(){
+if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+else document.exitFullscreen();
+}
+
+function toggleEpisodes(){
+document.getElementById("episodeDrawer").classList.toggle("show");
+}
+
+function toggleSettings(){
+document.getElementById("settingsPanel").classList.toggle("show");
+}
+
+function toggleLock(){
+player.classList.toggle("locked");
+}
+
+function openMenu(id){
+["mainMenu","speedMenu","langMenu","subMenu","qualityMenu"].forEach(x=>document.getElementById(x).style.display="none");
+document.getElementById(id).style.display="block";
+}
+
+function backMenu(){
+["speedMenu","langMenu","subMenu","qualityMenu"].forEach(x=>document.getElementById(x).style.display="none");
+document.getElementById("mainMenu").style.display="block";
+}
+
+function setSpeed(v){video.playbackRate=v;}
+function setLanguage(v){localStorage.setItem("language",v);}
+function setSubtitle(v){localStorage.setItem("subtitle",v);}
+
+video.addEventListener("loadedmetadata",()=>{
+document.getElementById("duration").textContent=format(video.duration);
+});
+
+video.addEventListener("timeupdate",()=>{
+progress.value=(video.currentTime/video.duration)*100||0;
+document.getElementById("current").textContent=format(video.currentTime);
+localStorage.setItem("resume",video.currentTime);
+});
+
+progress.addEventListener("input",()=>{
+video.currentTime=(progress.value/100)*video.duration;
+});
+
+document.getElementById("volume").addEventListener("input",e=>{
+video.volume=e.target.value;
+});
+
+document.getElementById("skipBtn").onclick=()=>video.currentTime+=90;
+
+const saved=localStorage.getItem("resume");
+if(saved) video.currentTime=parseFloat(saved);
+
+video.addEventListener("ended",()=>{
+let count=5;
+let box=document.getElementById("nextBox");
+box.style.display="block";
+
+let timer=setInterval(()=>{
+count--;
+document.getElementById("count").textContent=count;
+if(count===0){
+clearInterval(timer);
+alert("Load Next Episode");
+}
+},1000);
+});
+
+function format(sec){
+if(isNaN(sec)) return "00:00";
+let m=Math.floor(sec/60);
+let s=Math.floor(sec%60);
+return m+":"+String(s).padStart(2,"0");
+}
+
+if(screen.orientation){
+screen.orientation.lock("landscape").catch(()=>{});
+}
+
+showControls();
+</script>
+
+</body>
+</html>
